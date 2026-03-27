@@ -12,9 +12,9 @@ npm run build         # 프로덕션 빌드
 npm run lint          # ESLint 검사
 npm run format        # Prettier 포맷팅
 npm run format:check  # 포맷팅 검사 (수정 없음)
+npm run test          # Playwright E2E 테스트
+npm run test:ui       # Playwright UI 모드
 ```
-
-테스트 프레임워크는 아직 설정되어 있지 않음.
 
 ## 기술 스택
 
@@ -33,12 +33,19 @@ app/                    # App Router 페이지 (기본 RSC)
   layout.tsx            # 루트 레이아웃 (폰트, 프로바이더, Toaster)
   providers.tsx         # 클라이언트 프로바이더 (ThemeProvider, TooltipProvider)
   examples/             # 컴포넌트 쇼케이스 페이지
+  (demo)/               # 데모 라우트 그룹 (blog/[slug] 등)
+  robots.ts             # robots.txt 생성
+  sitemap.ts            # sitemap.xml 생성
+  manifest.ts           # PWA manifest 생성
+  opengraph-image.tsx   # 기본 OG 이미지 생성
 components/
   ui/                   # shadcn/ui 프리미티브 (직접 수정 가능)
   layout/               # Header, Footer, Container, MobileNav
   common/               # Logo, ThemeToggle
 lib/utils.ts            # cn() 유틸리티 (clsx + tailwind-merge)
-hooks/                  # 커스텀 훅 (현재 비어있음)
+lib/metadata.ts         # getMetadata() — 중앙 집중식 SEO 메타데이터 헬퍼
+hooks/                  # 커스텀 훅 (useMediaQuery 등)
+e2e/                    # Playwright E2E 테스트
 ```
 
 ## 주요 패턴
