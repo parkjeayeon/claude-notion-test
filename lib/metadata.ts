@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'StarterKit'
+import { APP_NAME, APP_URL } from './config'
 
 type MetadataConfig = {
   title: string
@@ -25,9 +24,15 @@ export function getMetadata(
   path: string,
   override?: Partial<Metadata>,
 ): Metadata {
+  const {
+    openGraph: ogOverride,
+    twitter: twOverride,
+    ...restOverride
+  } = override || {}
   const match = registry[path]
-  const title = override?.title || match?.title
-  const description = (override?.description as string) || match?.description
+  const title = restOverride.title || match?.title
+  const description =
+    (restOverride.description as string) || match?.description
   const canonicalUrl = `${APP_URL}${path}`
 
   return {
@@ -40,12 +45,14 @@ export function getMetadata(
       url: canonicalUrl,
       siteName: APP_NAME,
       type: 'website',
+      ...(ogOverride as object),
     },
     twitter: {
       card: 'summary_large_image',
       title: title ?? undefined,
       description,
+      ...(twOverride as object),
     },
-    ...override,
+    ...restOverride,
   }
 }

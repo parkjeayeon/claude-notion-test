@@ -49,6 +49,7 @@ function FormDemo() {
     formState: { errors },
     reset,
   } = useForm<ContactForm>({
+    // TODO: remove cast when @hookform/resolvers fully supports zod v4
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(contactSchema as any),
   })

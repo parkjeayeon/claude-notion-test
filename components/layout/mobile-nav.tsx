@@ -1,9 +1,11 @@
 'use client'
 
 import { Menu } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 
 import { Logo } from '@/components/common/logo'
+import type { NavItem } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -14,7 +16,7 @@ import {
 } from '@/components/ui/sheet'
 
 interface MobileNavProps {
-  navItems: { label: string; href: string }[]
+  navItems: NavItem[]
 }
 
 export function MobileNav({ navItems }: MobileNavProps) {
@@ -35,16 +37,27 @@ export function MobileNav({ navItems }: MobileNavProps) {
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-2 px-4">
-          {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className="text-muted-foreground hover:text-foreground rounded-md px-3 py-2 text-sm font-medium transition-colors"
-            >
-              {item.label}
-            </a>
-          ))}
+          {navItems.map((item) =>
+            item.href.startsWith('/') ? (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground rounded-md px-3 py-2 text-sm font-medium transition-colors"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className="text-muted-foreground hover:text-foreground rounded-md px-3 py-2 text-sm font-medium transition-colors"
+              >
+                {item.label}
+              </a>
+            ),
+          )}
         </nav>
       </SheetContent>
     </Sheet>

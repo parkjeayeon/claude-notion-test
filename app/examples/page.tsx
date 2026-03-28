@@ -1,14 +1,12 @@
 import { Container } from '@/components/layout/container'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getMetadata } from '@/lib/metadata'
 
 import { FeedbackShowcase } from './feedback-showcase'
 import { FormShowcase } from './form-showcase'
 import { UiShowcase } from './ui-showcase'
 
-export const metadata = {
-  title: 'Examples',
-  description: 'Component showcase for the StarterKit',
-}
+export const metadata = getMetadata('/examples')
 
 export default function ExamplesPage() {
   return (
