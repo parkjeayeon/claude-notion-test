@@ -7,27 +7,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 개발 명령어
 
 ```bash
-npm run dev           # 개발 서버 (localhost:3000)
-npm run build         # 프로덕션 빌드
-npm run lint          # ESLint 검사
-npm run format        # Prettier 포맷팅
-npm run format:check  # 포맷팅 검사 (수정 없음)
-npm run test          # Playwright E2E 테스트
-npm run test:ui       # Playwright UI 모드
-npx playwright test e2e/home.spec.ts              # 단일 테스트 파일 실행
-npx playwright test -g "테스트 이름"               # 이름으로 필터
-npx playwright test --project=chromium             # 특정 브라우저만
+pnpm dev              # 개발 서버 (localhost:3000)
+pnpm build            # 프로덕션 빌드
+pnpm start            # 프로덕션 서버 실행
+pnpm lint             # ESLint 검사
+pnpm format           # Prettier 포맷팅
+pnpm format:check     # 포맷팅 검사 (수정 없음)
+pnpm test             # Playwright E2E 테스트
+pnpm test:ui          # Playwright UI 모드
+pnpm exec playwright test e2e/home.spec.ts        # 단일 테스트 파일 실행
+pnpm exec playwright test -g "테스트 이름"         # 이름으로 필터
+pnpm exec playwright test --project=chromium       # 특정 브라우저만
 ```
 
 ## 기술 스택
 
-- **Next.js 16** (App Router) + **React 19** + **TypeScript 5** (strict mode)
+- **Next.js 16.2** (App Router) + **React 19** + **TypeScript 5** (strict mode)
 - **Tailwind CSS 4** — `tailwind.config.ts` 없음, `app/globals.css`의 `@theme inline`에서 직접 설정
-- **shadcn/ui** (radix-vega 스타일) — `npx shadcn@latest add <name>`으로 컴포넌트 추가
-- **zustand** + **immer** (상태 관리)
-- **react-hook-form** + **zod** (폼 검증)
+- **shadcn/ui 4** (radix-vega 스타일) — `pnpm dlx shadcn@latest add <name>`으로 컴포넌트 추가
+  - **radix-ui** 통합 패키지 사용 (개별 `@radix-ui/*` 아님)
+  - **class-variance-authority** (CVA)로 variants 정의
+  - **tw-animate-css** 애니메이션
+- **zustand 5** + **immer** (상태 관리)
+- **react-hook-form 7** + **zod 4** + **@hookform/resolvers 5** (폼 검증)
+  - ⚠️ zod v4는 v3과 API 차이 있음 — 작성 전 `docs/specs/` 또는 context7 참조
 - **next-themes** (다크/라이트 모드)
 - **sonner** (토스트), **lucide-react** (아이콘), **date-fns** (날짜)
+- **usehooks-ts** (범용 커스텀 훅 라이브러리)
+
+## 환경변수
+
+`.env.example` 참조:
+- `NEXT_PUBLIC_APP_URL` — 사이트 URL (메타데이터, OG 이미지에 사용)
+- `NEXT_PUBLIC_APP_NAME` — 사이트 이름 (메타데이터)
+- `CLAUDE_SLACK_WEBHOOK_URL` — Slack 웹훅 (Claude Code 훅용, 선택)
 
 ## 아키텍처
 
@@ -36,6 +49,12 @@ app/                    # App Router 페이지 (기본 RSC)
   layout.tsx            # 루트 레이아웃 (폰트, 프로바이더, Toaster)
   providers.tsx         # 클라이언트 프로바이더 (ThemeProvider, TooltipProvider)
   globals.css           # Tailwind 4 + CSS 변수 테마 (oklch)
+  error.tsx             # 에러 경계
+  loading.tsx           # 로딩 상태
+  not-found.tsx         # 404 페이지
+  opengraph-image.tsx   # OG 이미지 동적 생성
+  robots.ts             # robots.txt 생성
+  sitemap.ts            # sitemap.xml 생성
   examples/             # 컴포넌트 쇼케이스 페이지
   (demo)/               # 데모 라우트 그룹 (blog/[slug] 등)
 components/
@@ -45,9 +64,15 @@ components/
 lib/
   utils.ts              # cn() — clsx + tailwind-merge
   metadata.ts           # getMetadata() — 경로 기반 SEO 메타데이터 헬퍼
+  config.ts             # APP_URL, APP_NAME 상수 (환경변수 래퍼)
 hooks/                  # 커스텀 훅 (useMediaQuery 등)
 e2e/                    # Playwright E2E 테스트
 docs/specs/             # 기술 패턴 문서
+  zustand-usage-pattern.md        # 3가지 Zustand 패턴 (기본/Immer/Persist+Immer)
+  axios-react-query-pattern.md    # API 통합 패턴 (참고용, 미설치)
+  nextjs-api-integration-patterns.md  # API 연동 방식 비교
+  app-text-pattern.md             # Text 컴포넌트 사용법
+  seo-setup.md                    # SEO 8단계 설정 가이드
 ```
 
 ## 주요 패턴
@@ -66,10 +91,17 @@ docs/specs/             # 기술 패턴 문서
 - 조건부 클래스는 반드시 `cn()` 사용: `cn('base', condition && 'extra')`
 - shadcn/ui 컴포넌트는 CVA(class-variance-authority)로 variants 정의
 
+### Text 컴포넌트
+- `components/ui/text.tsx`: CVA 기반 다형성 텍스트 컴포넌트
+- Variants: `h1`–`h6`, `body1`–`body8` / Colors: `default`, `muted`, `destructive`, `accent`
+- `as` prop으로 렌더링 요소 변경: `<Text as="h2" variant="h2">`
+- 상세 사용법: `docs/specs/app-text-pattern.md`
+
 ### SEO 메타데이터
 - `lib/metadata.ts`의 `getMetadata(path, override?)`로 일관된 메타데이터 생성
-- 환경변수: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_APP_NAME`
-- OG 이미지, robots.ts, sitemap.ts 설정 완료
+- `lib/config.ts`에서 `APP_URL`, `APP_NAME` 상수 참조
+- OG 이미지(`opengraph-image.tsx`), `robots.ts`, `sitemap.ts` 설정 완료
+- 상세 설정: `docs/specs/seo-setup.md`
 
 ### 테마
 - CSS 변수 (oklch 색상 공간) 기반, `.dark` 클래스로 다크모드 전환
@@ -88,4 +120,5 @@ docs/specs/             # 기술 패턴 문서
 
 - Prettier: 세미콜론 없음, 작은따옴표, 2칸 들여쓰기, trailing comma
 - `prettier-plugin-tailwindcss`로 클래스 자동 정렬
+- ESLint 9 flat config (`eslint.config.mjs`): `core-web-vitals` + `typescript`
 - 컴포넌트는 named export 사용
