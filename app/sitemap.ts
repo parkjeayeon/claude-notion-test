@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 import { APP_URL } from '@/lib/config'
 
-const routes = ['', '/examples', '/blog/hello-world']
+const routes = ['']
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return routes.map((route) => ({

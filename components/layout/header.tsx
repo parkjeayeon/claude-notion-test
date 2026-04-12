@@ -7,11 +7,7 @@ import { MobileNav } from '@/components/layout/mobile-nav'
 
 export type NavItem = { label: string; href: string }
 
-const navItems: NavItem[] = [
-  { label: 'Features', href: '#features' },
-  { label: 'Examples', href: '/examples' },
-  { label: 'Docs', href: '#docs' },
-]
+const navItems: NavItem[] = []
 
 function NavLink({ item }: { item: NavItem }) {
   const className =

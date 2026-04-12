@@ -11,12 +11,8 @@ type MetadataConfig = {
 // Route metadata registry (can be split into JSON or DB later)
 const registry: Record<string, MetadataConfig> = {
   '/': {
-    title: 'Home',
-    description: 'A modern Next.js starter kit',
-  },
-  '/examples': {
-    title: 'Examples',
-    description: 'Component showcase and usage examples',
+    title: '홈',
+    description: '노션 기반 견적서 조회 및 PDF 다운로드 서비스',
   },
 }
 
