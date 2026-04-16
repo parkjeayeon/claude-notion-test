@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { InvoiceHeader } from '@/components/invoice/InvoiceHeader'
+import { InvoiceItemTable } from '@/components/invoice/InvoiceItemTable'
+import { InvoiceSummary } from '@/components/invoice/InvoiceSummary'
 import { Container } from '@/components/layout/container'
-import { Skeleton } from '@/components/ui/skeleton'
 import { getMetadata } from '@/lib/metadata'
 import { getInvoiceByPageId } from '@/lib/notion'
 
@@ -11,8 +13,12 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id: _id } = await params
-  return getMetadata('/', { title: '견적서' })
+  const { id } = await params
+  const invoice = await getInvoiceByPageId(id)
+  if (!invoice) return getMetadata('/', { title: '견적서를 찾을 수 없습니다' })
+  return getMetadata('/', {
+    title: `${invoice.invoiceNumber} - ${invoice.clientName}`,
+  })
 }
 
 export default async function InvoicePage({ params }: Props) {
@@ -21,15 +27,13 @@ export default async function InvoicePage({ params }: Props) {
   const invoice = await getInvoiceByPageId(id)
   if (!invoice) notFound()
 
-  // TODO: F003 - 견적서 UI 컴포넌트로 렌더링 (InvoiceHeader, StatusBadge, InvoiceItemTable, InvoiceSummary)
-
   return (
-    <Container className="py-12">
+    <Container className="max-w-3xl py-12">
       <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-72" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-10 w-32" />
+        <InvoiceHeader invoice={invoice} />
+        <InvoiceItemTable items={invoice.items} />
+        <InvoiceSummary totalAmount={invoice.totalAmount} items={invoice.items} />
+        {/* TODO: PDF 다운로드 버튼 (Phase 3 PDF 태스크에서 구현) */}
       </div>
     </Container>
   )
