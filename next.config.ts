@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
   },
+  serverExternalPackages: ['@react-pdf/renderer'],
 }
 
 export default nextConfig
