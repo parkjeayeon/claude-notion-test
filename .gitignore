@@ -14,6 +14,12 @@
 /coverage
 /test-results/
 /playwright-report/
+/.playwright-mcp/
+
+# screenshots
+*.png
+*.jpg
+*.jpeg
 
 # next.js
 /.next/
