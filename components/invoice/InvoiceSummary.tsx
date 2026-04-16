@@ -15,6 +15,16 @@ function formatKRW(amount: number): string {
 // VAT 세율 10%
 const VAT_RATE = 0.1
 
+// 라벨-값 행 헬퍼
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums">{value}</span>
+    </div>
+  )
+}
+
 export function InvoiceSummary({ totalAmount, items }: Props) {
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0)
   const vat = Math.round(subtotal * VAT_RATE)
@@ -23,37 +33,29 @@ export function InvoiceSummary({ totalAmount, items }: Props) {
   const displayTotal = totalAmount > 0 ? totalAmount : calculatedTotal
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        {/* 합계 내역 — 우측 정렬 레이아웃 */}
-        <div className="ml-auto max-w-xs space-y-3">
-          {/* 소계 행 */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">소계 (공급가액)</span>
-            <span className="tabular-nums">{formatKRW(subtotal)}</span>
+    <Card className="rounded-lg border border-border shadow-none ring-0">
+      <CardContent className="px-6 py-5">
+        {/* 2열 grid: 좌측 안내문 / 우측 합계 */}
+        <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
+          {/* 좌측: 안내 문구 — 빈 공간 채움 */}
+          <div className="text-muted-foreground space-y-1.5 text-xs leading-relaxed">
+            <p>본 견적서의 금액은 부가가치세(VAT 10%)가 포함된 금액입니다.</p>
+            <p>유효기간 내 회신 부탁드립니다.</p>
           </div>
 
-          {/* VAT 행 */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">부가세 (VAT 10%)</span>
-            <span className="tabular-nums">{formatKRW(vat)}</span>
-          </div>
-
-          <Separator />
-
-          {/* 최종 합계 — 크고 굵게 강조 */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">합계 (부가세 포함)</span>
-            <span className="text-primary text-xl font-bold tabular-nums">
-              {formatKRW(displayTotal)}
-            </span>
+          {/* 우측: 소계 / VAT / 합계 */}
+          <div className="w-full space-y-3 sm:ml-auto sm:max-w-xs">
+            <Row label="소계 (공급가액)" value={formatKRW(subtotal)} />
+            <Row label="부가세 (VAT 10%)" value={formatKRW(vat)} />
+            <Separator />
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-semibold">합계 (부가세 포함)</span>
+              <span className="text-foreground text-xl font-bold tabular-nums">
+                {formatKRW(displayTotal)}
+              </span>
+            </div>
           </div>
         </div>
-
-        {/* 안내 문구 */}
-        <p className="text-muted-foreground mt-6 border-t pt-4 text-xs">
-          * 본 견적서의 금액은 부가가치세(VAT 10%)가 포함된 금액입니다.
-        </p>
       </CardContent>
     </Card>
   )

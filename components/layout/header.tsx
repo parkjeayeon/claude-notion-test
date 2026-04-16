@@ -31,7 +31,7 @@ function NavLink({ item }: { item: NavItem }) {
 export function Header() {
   return (
     <header className="bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
-      <Container className="flex h-14 items-center justify-between">
+      <Container className="flex h-14 max-w-3xl items-center justify-between">
         <Logo />
         <div className="flex items-center gap-1">
           <nav className="hidden items-center gap-1 lg:flex">
