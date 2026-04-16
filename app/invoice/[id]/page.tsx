@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
 import { Container } from '@/components/layout/container'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getMetadata } from '@/lib/metadata'
+import { getInvoiceByPageId } from '@/lib/notion'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -14,10 +16,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function InvoicePage({ params }: Props) {
-  const { id: _id } = await params
+  const { id } = await params
 
-  // TODO: F002 - getInvoiceByPageId(id) 로 데이터 조회
-  // TODO: F011 - 견적서가 없으면 notFound() 호출
+  const invoice = await getInvoiceByPageId(id)
+  if (!invoice) notFound()
+
+  // TODO: F003 - 견적서 UI 컴포넌트로 렌더링 (InvoiceHeader, StatusBadge, InvoiceItemTable, InvoiceSummary)
 
   return (
     <Container className="py-12">
