@@ -1,5 +1,8 @@
+import { unstable_cache } from 'next/cache'
 import { Client, isFullPage, APIResponseError, APIErrorCode } from '@notionhq/client'
 import type { PageObjectResponse, PartialPageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
+
+import { logger } from '@/lib/logger'
 
 export const notion = new Client({
   auth: process.env.NOTION_API_KEY,
@@ -117,25 +120,56 @@ function mapPageToInvoice(page: PageObjectResponse, items: InvoiceItem[]): Invoi
   }
 }
 
+// --- Rate limit retry ---
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (e) {
+      if (
+        APIResponseError.isAPIResponseError(e) &&
+        e.status === 429 &&
+        attempt < maxRetries
+      ) {
+        const delay = 1000 * 2 ** attempt
+        logger.warn('notion', `rate limited, retry ${attempt + 1}/${maxRetries}`, { data: { delay } })
+        await sleep(delay)
+        continue
+      }
+      throw e
+    }
+  }
+  throw new Error('withRetry: unreachable')
+}
+
+const CACHE_TTL = 60 * 10 // 10분
+
 // --- Queries ---
 
-export async function getInvoices(): Promise<InvoiceListItem[]> {
+async function _getInvoices(): Promise<InvoiceListItem[]> {
   if (!DATABASE_ID) {
     throw new Error('Notion env not configured: NOTION_DATABASE_ID is required')
   }
 
+  const start = Date.now()
   // dataSources.query는 신규 Data Source 전용 — 기존 DB는 이전 버전 클라이언트로 쿼리
-  const response = await notionLegacy.request<{
-    results: Array<PageObjectResponse | PartialPageObjectResponse>
-    has_more: boolean
-    next_cursor: string | null
-  }>({
-    path: `databases/${DATABASE_ID}/query`,
-    method: 'post',
-    body: {
-      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
-    },
-  })
+  const response = await withRetry(() =>
+    notionLegacy.request<{
+      results: Array<PageObjectResponse | PartialPageObjectResponse>
+      has_more: boolean
+      next_cursor: string | null
+    }>({
+      path: `databases/${DATABASE_ID}/query`,
+      method: 'post',
+      body: {
+        sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+      },
+    })
+  )
+  logger.info('notion', 'getInvoices', { durationMs: Date.now() - start })
 
   return response.results
     .filter(isFullPage)
@@ -145,19 +179,27 @@ export async function getInvoices(): Promise<InvoiceListItem[]> {
     })
 }
 
-export async function getInvoiceByPageId(pageId: string): Promise<InvoiceData | null> {
+async function _getInvoiceByPageId(pageId: string): Promise<InvoiceData | null> {
   if (!DATABASE_ID || !ITEMS_DATABASE_ID) {
     throw new Error('Notion env not configured: NOTION_DATABASE_ID and NOTION_ITEMS_DATABASE_ID are required')
   }
 
+  const start = Date.now()
   let page: Awaited<ReturnType<typeof notion.pages.retrieve>>
   try {
-    page = await notion.pages.retrieve({ page_id: pageId })
+    page = await withRetry(() => notion.pages.retrieve({ page_id: pageId }))
   } catch (e) {
     if (APIResponseError.isAPIResponseError(e)) {
       if (e.code === APIErrorCode.ObjectNotFound) return null
       if (e.code === APIErrorCode.ValidationError) return null
     }
+    logger.error('notion', `getInvoiceByPageId failed`, {
+      error: {
+        message: e instanceof Error ? e.message : String(e),
+        code: APIResponseError.isAPIResponseError(e) ? e.code : undefined,
+        stack: e instanceof Error ? e.stack : undefined,
+      },
+    })
     throw e
   }
 
@@ -166,18 +208,29 @@ export async function getInvoiceByPageId(pageId: string): Promise<InvoiceData | 
   const itemIds = extractRelationIds(page.properties[INVOICE_KEYS.items])
 
   const settled = await Promise.allSettled(
-    itemIds.map((id) => notion.pages.retrieve({ page_id: id })),
+    itemIds.map((id) => withRetry(() => notion.pages.retrieve({ page_id: id }))),
   )
 
   const items: InvoiceItem[] = []
   for (const result of settled) {
     if (result.status === 'rejected') {
-      console.warn('[notion] Failed to retrieve item page:', result.reason)
+      logger.warn('notion', 'failed to retrieve item page', {
+        error: { message: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+      })
       continue
     }
     if (!isFullPage(result.value)) continue
     items.push(mapPageToItem(result.value))
   }
 
+  logger.info('notion', `getInvoiceByPageId`, { durationMs: Date.now() - start, data: { pageId, itemCount: items.length } })
   return mapPageToInvoice(page, items)
 }
+
+export const getInvoices = unstable_cache(_getInvoices, ['invoices'], { revalidate: CACHE_TTL })
+
+export const getInvoiceByPageId = unstable_cache(
+  _getInvoiceByPageId,
+  ['invoice-by-id'],
+  { revalidate: CACHE_TTL },
+)

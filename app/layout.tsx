@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono, Inter } from 'next/font/google'
+import { Geist_Mono, Inter } from 'next/font/google'
 
 import { Footer } from '@/components/layout/footer'
 import { Header } from '@/components/layout/header'
@@ -11,11 +11,6 @@ import './globals.css'
 import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
@@ -56,7 +51,6 @@ export default function RootLayout({
       className={cn(
         'h-full antialiased',
         inter.variable,
-        geistSans.variable,
         geistMono.variable,
         'font-sans',
       )}
