@@ -28,6 +28,8 @@ pnpm exec playwright test --project=chromium       # 특정 브라우저만
   - **radix-ui** 통합 패키지 사용 (개별 `@radix-ui/*` 아님)
   - **class-variance-authority** (CVA)로 variants 정의
   - **tw-animate-css** 애니메이션
+- **@notionhq/client 5** — Notion API (레거시 클라이언트 `notionVersion: '2022-06-28'` 병행 사용)
+- **@react-pdf/renderer** — 서버사이드 PDF 생성 (`serverExternalPackages`에 등록 필요)
 - **zustand 5** + **immer** (상태 관리)
 - **react-hook-form 7** + **zod 4** + **@hookform/resolvers 5** (폼 검증)
   - ⚠️ zod v4는 v3과 API 차이 있음 — 작성 전 `docs/specs/` 또는 context7 참조
@@ -40,7 +42,10 @@ pnpm exec playwright test --project=chromium       # 특정 브라우저만
 `.env.example` 참조:
 - `NEXT_PUBLIC_APP_URL` — 사이트 URL (메타데이터, OG 이미지에 사용)
 - `NEXT_PUBLIC_APP_NAME` — 사이트 이름 (메타데이터)
-- `CLAUDE_SLACK_WEBHOOK_URL` — Slack 웹훅 (Claude Code 훅용, 선택)
+- `NOTION_API_KEY` — Notion Integration 시크릿 키
+- `NOTION_PARENT_PAGE_ID` — Notion 부모 페이지 ID (DB 생성 위치)
+- `NOTION_DATABASE_ID` — 견적서 DB ID
+- `NOTION_ITEMS_DATABASE_ID` — 견적 항목 DB ID
 
 ## 아키텍처
 
@@ -55,17 +60,35 @@ app/                    # App Router 페이지 (기본 RSC)
   opengraph-image.tsx   # OG 이미지 동적 생성
   robots.ts             # robots.txt 생성
   sitemap.ts            # sitemap.xml 생성
-  examples/             # 컴포넌트 쇼케이스 페이지
-  (demo)/               # 데모 라우트 그룹 (blog/[slug] 등)
+  invoice/              # 견적서 기능 라우트
+    page.tsx            # 견적서 목록
+    loading.tsx         # 목록 로딩 스켈레톤
+    [id]/
+      page.tsx          # 견적서 상세 (generateMetadata 포함)
+      not-found.tsx     # 견적서 전용 404
+      loading.tsx       # 상세 로딩 스켈레톤
+  api/
+    invoice/[id]/pdf/
+      route.ts          # PDF 생성 API (GET)
 components/
   ui/                   # shadcn/ui 프리미티브 (직접 수정 가능)
   layout/               # Header, Footer, Container, MobileNav
   common/               # Logo, ThemeToggle
+  invoice/              # 견적서 전용 컴포넌트
+    InvoiceHeader.tsx   # 번호·메타 카드
+    InvoiceItemTable.tsx # 항목 테이블
+    InvoiceSummary.tsx  # 소계·VAT·합계
+    InvoicePDF.tsx      # @react-pdf/renderer PDF 문서
+    StatusBadge.tsx     # 상태 배지
 lib/
   utils.ts              # cn() — clsx + tailwind-merge
   metadata.ts           # getMetadata() — 경로 기반 SEO 메타데이터 헬퍼
   config.ts             # APP_URL, APP_NAME 상수 (환경변수 래퍼)
+  notion.ts             # Notion API 클라이언트 + 조회 함수 (캐싱, 재시도)
+  logger.ts             # 구조화 로거 (dev: pretty / prod: JSON)
 hooks/                  # 커스텀 훅 (useMediaQuery 등)
+public/
+  fonts/                # PDF 한글 폰트 (AppleGothic.ttf)
 e2e/                    # Playwright E2E 테스트
 docs/specs/             # 기술 패턴 문서
   zustand-usage-pattern.md        # 3가지 Zustand 패턴 (기본/Immer/Persist+Immer)
@@ -73,6 +96,9 @@ docs/specs/             # 기술 패턴 문서
   nextjs-api-integration-patterns.md  # API 연동 방식 비교
   app-text-pattern.md             # Text 컴포넌트 사용법
   seo-setup.md                    # SEO 8단계 설정 가이드
+docs/
+  notion-db-setup.md              # Notion DB 생성 가이드
+  notion-setup-troubleshooting.md # Notion 연동 트러블슈팅
 ```
 
 ## 주요 패턴
