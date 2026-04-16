@@ -61,7 +61,7 @@ export default function RootLayout({
         'font-sans',
       )}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
           <Header />
           <main className="flex-1">{children}</main>

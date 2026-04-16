@@ -1,8 +1,14 @@
 import { Client, isFullPage, APIResponseError, APIErrorCode } from '@notionhq/client'
-import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
+import type { PageObjectResponse, PartialPageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 
 export const notion = new Client({
   auth: process.env.NOTION_API_KEY,
+})
+
+// databases.query가 2025-09-03에서 제거됨 — 이전 버전으로 목록 조회용 클라이언트 분리
+const notionLegacy = new Client({
+  auth: process.env.NOTION_API_KEY,
+  notionVersion: '2022-06-28',
 })
 
 export const DATABASE_ID = process.env.NOTION_DATABASE_ID ?? ''
@@ -44,6 +50,9 @@ export type InvoiceData = {
   totalAmount: number
   status: string
 }
+
+// items 미포함 — 목록 조회용
+export type InvoiceListItem = Omit<InvoiceData, 'items'>
 
 // --- Property extractors ---
 
@@ -108,7 +117,33 @@ function mapPageToInvoice(page: PageObjectResponse, items: InvoiceItem[]): Invoi
   }
 }
 
-// --- Main query ---
+// --- Queries ---
+
+export async function getInvoices(): Promise<InvoiceListItem[]> {
+  if (!DATABASE_ID) {
+    throw new Error('Notion env not configured: NOTION_DATABASE_ID is required')
+  }
+
+  // dataSources.query는 신규 Data Source 전용 — 기존 DB는 이전 버전 클라이언트로 쿼리
+  const response = await notionLegacy.request<{
+    results: Array<PageObjectResponse | PartialPageObjectResponse>
+    has_more: boolean
+    next_cursor: string | null
+  }>({
+    path: `databases/${DATABASE_ID}/query`,
+    method: 'post',
+    body: {
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+    },
+  })
+
+  return response.results
+    .filter(isFullPage)
+    .map((page) => {
+      const { items: _items, ...listItem } = mapPageToInvoice(page, [])
+      return listItem
+    })
+}
 
 export async function getInvoiceByPageId(pageId: string): Promise<InvoiceData | null> {
   if (!DATABASE_ID || !ITEMS_DATABASE_ID) {

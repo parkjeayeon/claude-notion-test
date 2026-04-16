@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Download } from 'lucide-react'
 import { notFound } from 'next/navigation'
 
@@ -30,33 +31,21 @@ export default async function InvoicePage({ params }: Props) {
   if (!invoice) notFound()
 
   return (
-    <Container className="max-w-3xl py-12">
-      <div className="space-y-6">
-        {/* 상단 액션 영역 — 제목 + PDF 다운로드 버튼 */}
+    <Container className="py-12">
+      <div className="mx-auto max-w-3xl space-y-4">
+        {/* 상단 액션 영역 */}
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-muted-foreground text-sm">견적서 상세</p>
-          </div>
-          {/* TODO: PDF 다운로드 기능 구현 필요 (Phase 3) */}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled
-            className="gap-2"
-            aria-label="PDF 다운로드 (준비 중)"
-          >
-            <Download className="size-4" />
-            PDF 다운로드
+          <p className="text-muted-foreground text-sm">견적서 상세</p>
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href={`/api/invoice/${id}/pdf`} target="_blank" rel="noopener noreferrer">
+              <Download className="size-4" />
+              <span className="hidden sm:inline">PDF 다운로드</span>
+            </Link>
           </Button>
         </div>
 
-        {/* 견적서 헤더 (번호, 클라이언트, 날짜, 상태) */}
         <InvoiceHeader invoice={invoice} />
-
-        {/* 견적 항목 테이블 */}
         <InvoiceItemTable items={invoice.items} />
-
-        {/* 합계 요약 (소계, VAT, 총액) */}
         <InvoiceSummary totalAmount={invoice.totalAmount} items={invoice.items} />
       </div>
     </Container>
