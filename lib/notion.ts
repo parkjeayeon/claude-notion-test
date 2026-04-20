@@ -1,4 +1,4 @@
-import { unstable_cache } from 'next/cache'
+import { unstable_cache, revalidatePath } from 'next/cache'
 import { Client, isFullPage, APIResponseError, APIErrorCode } from '@notionhq/client'
 import type { PageObjectResponse, PartialPageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 
@@ -234,3 +234,17 @@ export const getInvoiceByPageId = unstable_cache(
   ['invoice-by-id'],
   { revalidate: CACHE_TTL },
 )
+
+export async function updateInvoiceStatus(pageId: string, status: string): Promise<void> {
+  await withRetry(() =>
+    notion.pages.update({
+      page_id: pageId,
+      properties: {
+        [INVOICE_KEYS.status]: { select: { name: status } },
+      },
+    })
+  )
+  revalidatePath('/admin/invoices')
+  revalidatePath(`/admin/invoices/${pageId}`)
+  revalidatePath('/invoice')
+}

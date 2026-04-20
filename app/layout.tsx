@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist_Mono, Inter } from 'next/font/google'
 
-import { Footer } from '@/components/layout/footer'
-import { Header } from '@/components/layout/header'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_NAME, APP_URL } from '@/lib/config'
 import { cn } from '@/lib/utils'
@@ -57,9 +55,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          {children}
           <Toaster />
         </Providers>
       </body>
